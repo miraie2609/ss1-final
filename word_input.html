@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Word Input</title>
+</head>
+<body>
+    <h2>Hello {{ email }}!</h2>
+    <form method="POST" action="/save-words">
+        <label>Enter words (comma-separated):</label><br>
+        <input type="text" name="words" />
+        <br><br>
+        <input type="submit" value="Submit">
+    </form>
+
+    <form method="POST" action="/upload-csv" enctype="multipart/form-data">
+        <label>Upload CSV:</label>
+        <input type="file" name="csv_file">
+        <input type="submit" value="Upload">
+    </form>
+</body>
+</html>
