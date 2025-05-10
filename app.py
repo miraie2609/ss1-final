@@ -1,29 +1,27 @@
 from flask import Flask, redirect, url_for, session, render_template, request
-from flask_oauthlib.client import OAuth
+from authlib.integrations.flask_client import OAuth
 import sqlite3
+from werkzeug.security import generate_password_hash
+import os
 
 app = Flask(__name__)
-app.secret_key = 'a_secret_key_here'  # Đặt key bí mật bất kỳ
+app.secret_key = 'a_secret_key_here'
+
 oauth = OAuth(app)
 
-# Google OAuth setup
-google = oauth.remote_app(
-    'google',
-    consumer_key='YOUR_CONSUMER_KEY',  # <- thay bằng thật
-    consumer_secret='YOUR_CONSUMER_SECRET',  # <- thay bằng thật
-    request_token_params={
-        'scope': 'email profile'
+google = oauth.register(
+    name='google',
+    client_id='YOUR_CLIENT_KEY',
+    client_secret='YOUR_CLIENT_SECRET',
+    access_token_url='https://oauth2.googleapis.com/token',
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    api_base_url='https://www.googleapis.com/oauth2/v2/',
+    userinfo_endpoint='https://www.googleapis.com/oauth2/v2/userinfo',
+    client_kwargs={
+        'scope': 'openid email profile'
     },
-    base_url='https://www.googleapis.com/oauth2/v1/',
-    request_token_url=None,
-    access_token_method='POST',
-    access_token_url='https://accounts.google.com/o/oauth2/token',
-    authorize_url='https://accounts.google.com/o/oauth2/auth'
+    jwks_uri='https://www.googleapis.com/oauth2/v3/certs'  # Thêm dòng này
 )
-
-@google.tokengetter
-def get_google_oauth_token():
-    return session.get('google_token')
 
 @app.route('/')
 def index():
@@ -31,36 +29,57 @@ def index():
 
 @app.route('/login')
 def login():
-    return google.authorize(callback=url_for('authorized', _external=True))
-
-# @app.route('/login')
-# def login():
-#     callback_url = url_for('authorized', _external=True)
-#     print("Redirect URI:", callback_url)
-#     return google.authorize(callback=callback_url)
+    redirect_uri = url_for('authorized', _external=True)
+    return google.authorize_redirect(redirect_uri)
 
 @app.route('/login/authorized')
 def authorized():
-    response = google.authorized_response()
-    if response is None or response.get('access_token') is None:
-        return 'Access Denied'
+    token = google.authorize_access_token()
+    resp = google.get('userinfo', token=token)
+    userinfo = resp.json()  # Thay đổi từ user_info thành userinfo
+    email = userinfo['email']  # Sử dụng userinfo thay vì user_info
+    name = userinfo.get('name', 'No name')  # Cũng thay đổi ở đây
 
-    session['google_token'] = (response['access_token'], '')
-    user_info = google.get('userinfo').data
-    email = user_info['email']
-    name = user_info.get('name', 'No name')
+    session['user_email'] = email
 
-    # Save user to DB if not exists
+    # Lưu vào database nếu chưa tồn tại
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE email=?", (email,))
-    if not c.fetchone():
+    user = c.fetchone()
+    if not user:
         c.execute("INSERT INTO users (email, name) VALUES (?, ?)", (email, name))
         conn.commit()
     conn.close()
 
-    session['user_email'] = email
+    # Nếu chưa có password
+    if not user or (len(user) >= 4 and user[3] is None):
+        return redirect(url_for('set_password'))
+    
     return redirect(url_for('word_input'))
+
+@app.route('/set-password', methods=['GET', 'POST'])
+def set_password():
+    if 'user_email' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+
+        if password != confirm_password:
+            return render_template('set_password.html', error="Passwords do not match")
+
+        hashed_password = generate_password_hash(password)
+        conn = sqlite3.connect('database.db')
+        c = conn.cursor()
+        c.execute("UPDATE users SET password=? WHERE email=?", (hashed_password, session['user_email']))
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for('word_input'))
+
+    return render_template('set_password.html')
 
 @app.route('/word-input')
 def word_input():
