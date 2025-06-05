@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}
+    My Vocabulary Lists - G-Easy English
+{% endblock %}
+
+{% block page_content %}
+    <div class="space-y-8">
+        {# Header của trang My Lists #}
+        <section class="relative rounded-xl overflow-hidden shadow-lg">
+            {# Ảnh banner cho header của trang My Lists - Thay bằng ảnh của bạn #}
+            <img src="{{ url_for('static', filename='images/my_lists_banner.jpg') }}" alt="My Lists Banner"
+                 class="w-full h-48 object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
+            <div class="absolute bottom-0 left-0 p-6 md:p-8">
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-1">My Lists</h1>
+                <p class="text-gray-200 text-sm md:text-base">Every word you saved is a step closer to mastery. Let's
+                    revisit them!</p>
+            </div>
+        </section>
+
+        {# Thanh công cụ: Filter/Tab và Search - ĐÃ CẬP NHẬT #}
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 py-4 mb-6">
+            {# Thêm mb-6 để có khoảng cách với grid phía dưới #}
+            {# Nhóm nút "All Lists" và ô tìm kiếm lại với nhau #}
+            <div class="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                <div>
+                    <button type="button"
+                            class="w-full sm:w-auto px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-orange-600">
+                        All Lists
+                    </button>
+                    {# Có thể thêm các tab filter khác ở đây sau, ví dụ:
+                <button type="button" class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 text-sm font-semibold rounded-md shadow-sm hover:bg-gray-300">
+                    Recent
+                </button>
+                #}
+                </div>
+                <div class="relative w-full sm:w-auto">
+                    <input type="search" name="search_list" id="search_list_input" placeholder="Search list..."
+                           class="w-full sm:w-64 lg:w-72 pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                             fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd"
+                                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                  clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            {# Nếu bạn muốn có nút gì đó ở phía đối diện (bên phải), bạn có thể thêm một div ở đây với justify-between ở div cha #}
+            {# Ví dụ: <div class="ml-auto"> <button>...</button> </div> #}
+        </div>
+
+        {# Khu vực hiển thị danh sách các List dưới dạng thẻ #}
+        {% if my_vocabulary_lists and my_vocabulary_lists|length > 0 %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 md:gap-8">
+                {% for vocab_list in my_vocabulary_lists %}
+                    {# THẺ "CREATE NEW LIST" - MỚI THÊM VÀO #}
+
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col transform hover:scale-105 transition-transform duration-300 ease-in-out">
+                        {# Ảnh thumbnail cho list - Thay bằng ảnh của bạn hoặc ảnh đại diện của list #}
+                        <div class="h-40 bg-gray-200 flex items-center justify-center">
+                            {# Sử dụng ảnh placeholder hoặc ảnh thực tế của list nếu có #}
+                            <img src="{{ url_for('static', filename='images/list_thumbnail_placeholder.png') }}"
+                                 alt="{{ vocab_list.name }} thumbnail" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <h2 class="text-lg font-semibold text-gray-800 mb-1 truncate"
+                                title="{{ vocab_list.name }}">{{ vocab_list.name }}</h2>
+                            <p class="text-xs text-gray-500 mb-2">
+                                Created: {{ vocab_list.created_at.strftime('%Y-%m-%d') }}
+                                {# ({{ vocab_list.entries|length }} words) #} {# Cần tính số từ nếu muốn hiển thị #}
+                            </p>
+                            {# Mô tả ngắn của list (nếu có) - Hiện tại model chưa có, có thể thêm sau #}
+                            <p class="text-sm text-gray-600 leading-relaxed mb-4 flex-grow">
+                                {# Ví dụ mô tả ngắn, bạn có thể lấy từ một trường mới trong model VocabularyList #}
+                                A collection of important words for you to master.
+                                {# Hoặc hiển thị một vài từ đầu tiên trong list nếu muốn #}
+                            </p>
+                            <div class="mt-auto pt-3 border-t border-gray-100 text-right">
+                                <a href="{{ url_for('list_detail_page', list_id=vocab_list.id) }}"
+                                   class="inline-block px-5 py-2 bg-orange-500 text-white text-xs font-semibold rounded-md shadow-sm hover:bg-orange-600 transition-colors duration-300">
+                                    Details
+                                </a>
+                                <form method="POST"
+                                      action="{{ url_for('delete_my_list', list_id_to_delete=vocab_list.id) }}"
+                                      onsubmit="return confirm('Are you sure you want to delete the list \'{{ vocab_list.name }}\'? All words in this list will also be deleted.');"
+                                      class="inline-block">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <button type="submit"
+                                            class="px-3 py-2 text-xs font-semibold text-red-600 hover:text-red-800 hover:bg-red-100 rounded-md transition-colors duration-300"
+                                            title="Delete list {{ vocab_list.name }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                        <span class="sr-only">Delete List</span> {# Cho accessibility #}
+                                    </button>
+                                </form>
+                                {# Có thể thêm các nút Edit Name, Delete List ở đây nếu muốn thay vì chỉ có ở bản list view cũ #}
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('enter_words_page') }}"
+                       class="bg-orange-50 hover:bg-orange-100 border-2 border-dashed border-orange-300 text-orange-500
+                  rounded-xl shadow-lg flex flex-col justify-center items-center
+                  p-5 min-h-[200px] sm:min-h-[240px] group transform hover:scale-105 transition-transform duration-300 ease-in-out">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-3 group-hover:text-orange-600"
+                             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-semibold text-lg group-hover:text-orange-600">Create New List</span>
+                        <p class="text-xs text-gray-500 mt-1 group-hover:text-orange-500">Start a fresh vocabulary
+                            collection</p>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <svg class="mx-auto h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                     aria-hidden="true">
+                    <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                </svg>
+                <h3 class="mt-2 text-lg font-medium text-gray-900">No vocabulary lists found.</h3>
+                <p class="mt-1 text-sm text-gray-500">Get started by creating a new list or adding some words!</p>
+                <div class="mt-6">
+                    <a href="{{ url_for('enter_words_page') }}"
+                       class="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                             fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd"
+                                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                  clip-rule="evenodd"/>
+                        </svg>
+                        Create New List
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts_extra %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- JavaScript cho Tìm kiếm Danh sách (với Debounce) ---
+            const searchInput = document.getElementById('search_list_input');
+            const listContainer = document.querySelector('.grid'); // Hoặc ID của grid nếu bạn đã đặt
+            let debounceTimer; // Biến để lưu trữ timer của debounce
+
+            if (searchInput && listContainer) {
+                searchInput.addEventListener('input', function (event) {
+                    clearTimeout(debounceTimer); // Xóa timer cũ (nếu có)
+
+                    debounceTimer = setTimeout(function () { // Đặt timer mới
+                        const searchTerm = event.target.value.toLowerCase().trim();
+                        const listCards = listContainer.querySelectorAll('.bg-white.rounded-xl.shadow-lg'); // Selector cho các thẻ list
+
+                        // Bạn có thể thêm hiệu ứng "loading" ở đây trước khi bắt đầu lọc
+                        // Ví dụ: hiển thị một spinner hoặc thay đổi con trỏ chuột
+                        // listContainer.classList.add('searching'); // Ví dụ thêm class để hiện spinner
+
+                        listCards.forEach(card => {
+                            const listNameElement = card.querySelector('h2.text-lg.font-semibold');
+                            if (listNameElement) {
+                                const listName = listNameElement.textContent.toLowerCase().trim();
+                                if (listName.includes(searchTerm)) {
+                                    card.style.display = '';
+                                } else {
+                                    card.style.display = 'none';
+                                }
+                            }
+                        });
+
+                        // Sau khi lọc xong, xóa hiệu ứng "loading"
+                        // listContainer.classList.remove('searching');
+
+                    }, 2000); // Thời gian chờ là 500ms (nửa giây) - bạn có thể điều chỉnh
+                });
+            }
+            // --- Kết thúc JavaScript cho Tìm kiếm Danh sách ---
+
+
+            // --- JavaScript cho Rename List Modal (nếu bạn đã có và muốn giữ lại ở đây) ---
+            // const renameListModal = document.getElementById('renameListModal');
+            // ... (toàn bộ code JavaScript cho Rename List Modal của bạn) ...
+
+        });
+    </script>
+{% endblock %}
