@@ -1,9 +1,6 @@
 # Vocabulary Learning Assistant (Demo Web App)
 
 A simple web application to help English learners practice and manage vocabulary effectively.
-![Home Page](vocab_assistant_images/home_page.png)  
-![My Lists](vocab_assistant_images/my_lists.png)  
-![Enter Words](vocab_assistant_images/enter_words.png)
 
 ## Project Goals and Scope
 
